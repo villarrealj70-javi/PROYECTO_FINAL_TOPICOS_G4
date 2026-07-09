@@ -1,0 +1,33 @@
+# ==========================================================
+# Proyecto Final - Tópicos Especiales
+# Módulo 5 - Automatización del Hardening
+# Caso de estudio: CREATIC
+# ==========================================================
+
+# Usuario administrador autorizado para la administración remota
+ssh_user: "vboxuser"
+
+# Puerto SSH personalizado (reemplaza el puerto 22 por seguridad)
+ssh_port: 2222
+
+# Configuración del firewall (UFW)
+allowed_ports:
+  - "2222"   # SSH
+  - "80"     # HTTP
+  - "443"    # HTTPS
+
+# Servicios innecesarios que serán deshabilitados si existen
+disabled_services:
+  - telnet
+  - ftp
+
+# Servidores Linux del escenario CREATIC
+web_server: "CR-APPSRV-02"
+db_server: "CR-DB-01"
+
+# Política de acceso root
+permit_root_login: "no"
+
+# Configuración del firewall
+ufw_default_incoming: "deny"
+ufw_default_outgoing: "allow"

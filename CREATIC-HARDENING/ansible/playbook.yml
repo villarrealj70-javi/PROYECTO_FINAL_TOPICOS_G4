@@ -1,0 +1,203 @@
+---
+############################################################
+# Proyecto Final - Tópicos Especiales
+#
+# Módulo 5
+# Automatización del Hardening
+#
+# Caso de estudio:
+# CREATIC
+#
+# Servidores protegidos:
+#   - CR-APPSRV-02
+#   - CR-DB-01
+#
+# Autores:Hiroshi Komatsu, Bryan Gonzalez, Joel Villarreal
+# Grupo 4
+############################################################
+
+- name: Hardening de servidores Linux CREATIC
+  hosts: linux_servers
+  serial: 1
+  become: yes
+
+  vars_files:
+    - vars.yml
+
+  tasks:
+    ############################################################
+    # BLOQUE 1
+    # Actualización del sistema operativo
+    ############################################################
+
+    # Actualiza la caché de paquetes para obtener las últimas versiones
+    - name: Actualizar caché de paquetes
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    # Instala todas las actualizaciones de seguridad disponibles
+    - name: Actualizar paquetes instalados
+      apt:
+        upgrade: dist
+
+    ############################################################
+    # BLOQUE 2
+    # Hardening del servicio SSH
+    ############################################################
+
+    # Cambia el puerto por defecto de SSH utilizando la variable definida
+    - name: Configurar puerto SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port'
+        line: "Port {{ ssh_port }}"
+        backup: yes
+
+    # Deshabilita el acceso directo del usuario root
+    - name: Deshabilitar login directo de root
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: "PermitRootLogin {{ permit_root_login }}"
+        backup: yes
+
+    # Reinicia el servicio SSH para aplicar los cambios
+    - name: Reiniciar servicio SSH
+      service:
+        name: ssh
+        state: restarted
+
+    ############################################################
+    # BLOQUE 3
+    # Configuración del Firewall UFW
+    ############################################################
+
+    # Instala UFW si no se encuentra instalado
+    - name: Instalar UFW
+      apt:
+        name: ufw
+        state: present
+
+    # Establece la política por defecto para conexiones entrantes
+    - name: Denegar conexiones entrantes por defecto
+      ufw:
+        direction: incoming
+        policy: "{{ ufw_default_incoming }}"
+
+    # Establece la política por defecto para conexiones salientes
+    - name: Permitir conexiones salientes
+      ufw:
+        direction: outgoing
+        policy: "{{ ufw_default_outgoing }}"
+
+    # Permite únicamente los puertos definidos en vars.yml
+    - name: Permitir puertos autorizados
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+      loop: "{{ allowed_ports }}"
+
+    # Habilita el firewall
+    - name: Habilitar UFW
+      ufw:
+        state: enabled
+
+    ############################################################
+    # BLOQUE 4
+    # Deshabilitar servicios innecesarios
+    ############################################################
+
+    # Detiene los servicios inseguros si existen
+    - name: Detener servicios innecesarios
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop: "{{ disabled_services }}"
+      ignore_errors: yes
+
+    ############################################################
+    # BLOQUE 5
+    # Remediación de vulnerabilidades
+    ############################################################
+
+    # Elimina paquetes que ya no son necesarios
+    - name: Eliminar paquetes obsoletos
+      apt:
+        autoremove: yes
+
+    # Limpia la caché de paquetes
+    - name: Limpiar caché de paquetes
+      apt:
+        autoclean: yes
+    ############################################################
+    # BLOQUE 6
+    # Verificación del Hardening
+    ############################################################
+
+    # Verifica que el servicio SSH se encuentre activo
+    - name: Verificar estado del servicio SSH
+      command: systemctl is-active ssh
+      register: ssh_status
+      changed_when: false
+
+    # Muestra el estado del servicio SSH
+    - name: Mostrar estado del servicio SSH
+      debug:
+        msg: "Estado del servicio SSH: {{ ssh_status.stdout }}"
+
+    # Verifica el estado del firewall UFW
+    - name: Obtener estado del Firewall
+      command: ufw status
+      register: firewall_status
+      changed_when: false
+
+    # Muestra las reglas configuradas en el firewall
+    - name: Mostrar reglas del Firewall
+      debug:
+        var: firewall_status.stdout_lines
+
+    # Verifica el puerto configurado para SSH
+    - name: Verificar puerto SSH configurado
+      command: grep "^Port" /etc/ssh/sshd_config
+      register: ssh_port_config
+      changed_when: false
+
+    # Muestra el puerto SSH configurado
+    - name: Mostrar puerto SSH
+      debug:
+        var: ssh_port_config.stdout
+
+    # Verifica que el acceso root esté deshabilitado
+    - name: Verificar acceso root
+      command: grep "^PermitRootLogin" /etc/ssh/sshd_config
+      register: root_login
+      changed_when: false
+
+    # Mostrar configuración de acceso root
+    - name: Mostrar configuración de root
+      debug:
+        var: root_login.stdout
+
+
+    ############################################################
+    # BLOQUE 7
+    # Resumen Final
+    ############################################################
+
+    # Mensaje final indicando que el proceso terminó correctamente
+    - name: Resumen del Hardening
+      debug:
+        msg:
+          - "=============================================="
+          - " Hardening completado correctamente"
+          - " Proyecto Final - CREATIC"
+          - " Servidores protegidos:"
+          - "   - CR-APPSRV-02"
+          - "   - CR-DB-01"
+          - " SSH protegido"
+          - " Firewall configurado"
+          - " Root Login deshabilitado"
+          - " Verificaciones completadas"
+          - "=============================================="
