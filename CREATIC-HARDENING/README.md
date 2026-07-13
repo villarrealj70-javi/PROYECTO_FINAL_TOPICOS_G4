@@ -63,9 +63,9 @@ PowerShell).
   10. Verificación final de todos los controles aplicados, con generación de log mediante 
       `Start-Transcript`.
 
-### ⚠️ Nota sobre el entorno de laboratorio
+### ⚠️ Nota sobre el entorno del proyecto
 
-Para el desarrollo del laboratorio se utilizó una única máquina virtual con Debian, la 
+Para el desarrollo de este módulo del proyecto se utilizó una única máquina virtual con Debian, la 
 cual representó de forma lógica los servidores `CR-APPSRV-02` y `CR-DB-01` definidos 
 en el caso de estudio de CREATIC. Debido a esta configuración, el archivo `inventory.ini` 
 fue implementado utilizando el parámetro `ansible_connection=local`, permitiendo 
